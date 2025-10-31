@@ -1,0 +1,33 @@
+# Ruby/Gem/Bundler bwrap configuration
+
+base:
+  share:
+    - /tmp
+
+commands:
+  ruby:
+    enabled: true
+    extends: base
+    bind:
+      - $PWD:/workspace
+
+  gem:
+    enabled: true
+    extends: base
+    share:
+      - ~/.gem
+    bind:
+      - $PWD:/workspace
+    unshare:
+      - network
+
+  bundle:
+    enabled: true
+    extends: base
+    share:
+      - ~/.bundle
+      - ~/.gem
+    bind:
+      - $PWD:/workspace
+    unshare:
+      - network

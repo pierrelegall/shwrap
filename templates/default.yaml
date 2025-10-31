@@ -1,0 +1,14 @@
+# Default .bwrap configuration
+# Customize this file to specify which commands should be sandboxed
+
+commands:
+  # Example command configuration
+  # npm:
+  #   enabled: true
+  #   unshare:
+  #     - network
+  #   share:
+  #     - ~/.npm
+  #     - /tmp
+  #   bind:
+  #     - $PWD:/workspace

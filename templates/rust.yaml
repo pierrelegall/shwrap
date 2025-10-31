@@ -1,0 +1,32 @@
+# Rust/Cargo bwrap configuration
+
+base:
+  share:
+    - /tmp
+
+commands:
+  cargo:
+    enabled: true
+    extends: base
+    share:
+      - ~/.cargo
+      - ~/.rustup
+    bind:
+      - $PWD:/workspace
+    unshare:
+      - network
+
+  rustc:
+    enabled: true
+    extends: base
+    share:
+      - ~/.rustup
+    bind:
+      - $PWD:/workspace
+
+  rustup:
+    enabled: true
+    share:
+      - ~/.rustup
+    unshare:
+      - network

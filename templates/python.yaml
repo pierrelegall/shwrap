@@ -1,0 +1,44 @@
+# Python bwrap configuration
+
+base:
+  share:
+    - /tmp
+
+commands:
+  python:
+    enabled: true
+    extends: base
+    share:
+      - ~/.python_history
+      - ~/.local/share/virtualenvs
+    bind:
+      - $PWD:/workspace
+
+  python3:
+    enabled: true
+    extends: base
+    share:
+      - ~/.python_history
+      - ~/.local/share/virtualenvs
+    bind:
+      - $PWD:/workspace
+
+  pip:
+    enabled: true
+    extends: base
+    share:
+      - ~/.cache/pip
+    bind:
+      - $PWD:/workspace
+    unshare:
+      - network
+
+  pip3:
+    enabled: true
+    extends: base
+    share:
+      - ~/.cache/pip
+    bind:
+      - $PWD:/workspace
+    unshare:
+      - network

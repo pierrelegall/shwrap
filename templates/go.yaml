@@ -1,0 +1,17 @@
+# Go bwrap configuration
+
+base:
+  share:
+    - /tmp
+
+commands:
+  go:
+    enabled: true
+    extends: base
+    share:
+      - ~/go
+      - ~/.cache/go-build
+    bind:
+      - $PWD:/workspace
+    unshare:
+      - network
