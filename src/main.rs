@@ -122,9 +122,6 @@ fn cmd_list() -> Result<()> {
     for (name, cmd_config) in &config.commands {
         if cmd_config.enabled {
             println!("\n{}:", name);
-            if !cmd_config.unshare.is_empty() {
-                println!("  unshare: {}", cmd_config.unshare.join(", "));
-            }
             if !cmd_config.share.is_empty() {
                 println!("  share: {}", cmd_config.share.join(", "));
             }

@@ -16,24 +16,26 @@ impl BwrapBuilder {
     pub fn build_args(&self) -> Vec<String> {
         let mut args = Vec::new();
 
-        // Handle unshare options
-        for namespace in &self.config.unshare {
-            match namespace.as_str() {
-                "network" => args.push("--unshare-net".to_string()),
-                "pid" => args.push("--unshare-pid".to_string()),
-                "ipc" => args.push("--unshare-ipc".to_string()),
-                "uts" => args.push("--unshare-uts".to_string()),
-                "user" => args.push("--unshare-user".to_string()),
-                _ => eprintln!("Warning: unknown namespace '{}'", namespace),
-            }
-        }
+        // Define all available namespaces
+        let all_namespaces = ["user", "pid", "network", "ipc", "uts", "cgroup"];
 
-        // Handle share (bind read-write)
-        for path in &self.config.share {
-            let expanded = shellexpand::full(path).unwrap_or_else(|_| path.into());
-            args.push("--bind".to_string());
-            args.push(expanded.to_string());
-            args.push(expanded.to_string());
+        // Determine which namespaces to unshare (all by default, except those in share)
+        let shared_namespaces: std::collections::HashSet<&str> =
+            self.config.share.iter().map(|s| s.as_str()).collect();
+
+        // Unshare all namespaces except those explicitly shared
+        for namespace in &all_namespaces {
+            if !shared_namespaces.contains(namespace) {
+                match *namespace {
+                    "network" => args.push("--unshare-net".to_string()),
+                    "pid" => args.push("--unshare-pid".to_string()),
+                    "ipc" => args.push("--unshare-ipc".to_string()),
+                    "uts" => args.push("--unshare-uts".to_string()),
+                    "user" => args.push("--unshare-user".to_string()),
+                    "cgroup" => args.push("--unshare-cgroup".to_string()),
+                    _ => {}
+                }
+            }
         }
 
         // Handle custom bind mounts
@@ -123,7 +125,6 @@ mod tests {
         CommandConfig {
             enabled: true,
             extends: None,
-            unshare: vec![],
             share: vec![],
             bind: vec![],
             ro_bind: vec![],
@@ -135,15 +136,9 @@ mod tests {
     }
 
     #[test]
-    fn test_build_args_unshare() {
-        let mut config = create_test_config();
-        config.unshare = vec![
-            "network".to_string(),
-            "pid".to_string(),
-            "ipc".to_string(),
-            "uts".to_string(),
-            "user".to_string(),
-        ];
+    fn test_build_args_unshare_all_default() {
+        let config = create_test_config();
+        // Empty config = all namespaces unshared by default
 
         let builder = BwrapBuilder::new(config);
         let args = builder.build_args();
@@ -153,18 +148,27 @@ mod tests {
         assert!(args.contains(&"--unshare-ipc".to_string()));
         assert!(args.contains(&"--unshare-uts".to_string()));
         assert!(args.contains(&"--unshare-user".to_string()));
+        assert!(args.contains(&"--unshare-cgroup".to_string()));
     }
 
     #[test]
     fn test_build_args_share() {
         let mut config = create_test_config();
-        config.share = vec!["/home/user".to_string()];
+        // share now controls namespace sharing, not filesystem paths
+        config.share = vec!["network".to_string(), "user".to_string()];
 
         let builder = BwrapBuilder::new(config);
         let args = builder.build_args();
 
-        assert!(args.contains(&"--bind".to_string()));
-        assert!(args.contains(&"/home/user".to_string()));
+        // Network and user should NOT be unshared
+        assert!(!args.contains(&"--unshare-net".to_string()));
+        assert!(!args.contains(&"--unshare-user".to_string()));
+
+        // But other namespaces should be unshared
+        assert!(args.contains(&"--unshare-pid".to_string()));
+        assert!(args.contains(&"--unshare-ipc".to_string()));
+        assert!(args.contains(&"--unshare-uts".to_string()));
+        assert!(args.contains(&"--unshare-cgroup".to_string()));
     }
 
     #[test]
@@ -248,7 +252,7 @@ mod tests {
     #[test]
     fn test_build_args_combined() {
         let mut config = create_test_config();
-        config.unshare = vec!["network".to_string()];
+        config.share = vec!["user".to_string()]; // Share only user namespace
         config.ro_bind = vec!["/usr".to_string()];
         config.env.insert("TEST".to_string(), "value".to_string());
 
@@ -257,6 +261,7 @@ mod tests {
 
         // Check all types are present
         assert!(args.contains(&"--unshare-net".to_string()));
+        assert!(!args.contains(&"--unshare-user".to_string())); // user is shared
         assert!(args.contains(&"--ro-bind".to_string()));
         assert!(args.contains(&"--setenv".to_string()));
     }
@@ -264,7 +269,7 @@ mod tests {
     #[test]
     fn test_show_command() {
         let mut config = create_test_config();
-        config.unshare = vec!["network".to_string()];
+        config.share = vec!["user".to_string()]; // Share user, unshare rest
 
         let builder = BwrapBuilder::new(config);
         let cmd = builder.show("node", &["script.js".to_string()]);
@@ -293,14 +298,19 @@ mod tests {
         let builder = BwrapBuilder::new(config);
         let args = builder.build_args();
 
-        // Empty config should produce empty args
-        assert_eq!(args.len(), 0);
+        // Empty config should unshare all namespaces by default
+        assert!(args.contains(&"--unshare-net".to_string()));
+        assert!(args.contains(&"--unshare-pid".to_string()));
+        assert!(args.contains(&"--unshare-ipc".to_string()));
+        assert!(args.contains(&"--unshare-uts".to_string()));
+        assert!(args.contains(&"--unshare-user".to_string()));
+        assert!(args.contains(&"--unshare-cgroup".to_string()));
     }
 
     #[test]
     fn test_bind_with_tilde() {
         let mut config = create_test_config();
-        config.share = vec!["~/.config".to_string()];
+        config.bind = vec!["~/.config:~/.config".to_string()];
 
         let builder = BwrapBuilder::new(config);
         let args = builder.build_args();
@@ -325,4 +335,63 @@ mod tests {
         let bind_count = args.iter().filter(|x| *x == "--bind").count();
         assert_eq!(bind_count, 0);
     }
+
+    #[test]
+    fn test_unshare_all_by_default() {
+        let config = create_test_config();
+        let builder = BwrapBuilder::new(config);
+        let args = builder.build_args();
+
+        // All namespaces should be unshared by default
+        assert!(args.contains(&"--unshare-net".to_string()));
+        assert!(args.contains(&"--unshare-pid".to_string()));
+        assert!(args.contains(&"--unshare-ipc".to_string()));
+        assert!(args.contains(&"--unshare-uts".to_string()));
+        assert!(args.contains(&"--unshare-user".to_string()));
+        assert!(args.contains(&"--unshare-cgroup".to_string()));
+    }
+
+    #[test]
+    fn test_share_specific_namespaces() {
+        let mut config = create_test_config();
+        config.share = vec!["user".to_string(), "network".to_string()];
+
+        let builder = BwrapBuilder::new(config);
+        let args = builder.build_args();
+
+        // User and network should NOT be unshared (they are shared)
+        assert!(!args.contains(&"--unshare-user".to_string()));
+        assert!(!args.contains(&"--unshare-net".to_string()));
+
+        // All other namespaces should still be unshared
+        assert!(args.contains(&"--unshare-pid".to_string()));
+        assert!(args.contains(&"--unshare-ipc".to_string()));
+        assert!(args.contains(&"--unshare-uts".to_string()));
+        assert!(args.contains(&"--unshare-cgroup".to_string()));
+    }
+
+    #[test]
+    fn test_share_all_namespaces() {
+        let mut config = create_test_config();
+        config.share = vec![
+            "user".to_string(),
+            "pid".to_string(),
+            "network".to_string(),
+            "ipc".to_string(),
+            "uts".to_string(),
+            "cgroup".to_string(),
+        ];
+
+        let builder = BwrapBuilder::new(config);
+        let args = builder.build_args();
+
+        // No namespaces should be unshared
+        assert!(!args.contains(&"--unshare-user".to_string()));
+        assert!(!args.contains(&"--unshare-pid".to_string()));
+        assert!(!args.contains(&"--unshare-net".to_string()));
+        assert!(!args.contains(&"--unshare-ipc".to_string()));
+        assert!(!args.contains(&"--unshare-uts".to_string()));
+        assert!(!args.contains(&"--unshare-cgroup".to_string()));
+    }
+
 }

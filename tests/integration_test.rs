@@ -10,8 +10,8 @@ fn test_full_config_loading_and_execution() {
     let yaml = indoc! {"
         templates:
           base:
-            unshare:
-              - network
+            share:
+              - user
             ro_bind:
               - /usr
               - /lib
@@ -27,8 +27,6 @@ fn test_full_config_loading_and_execution() {
 
           python:
             enabled: false
-            unshare:
-              - pid
     "};
 
     fs::write(&config_path, yaml).unwrap();
@@ -41,7 +39,7 @@ fn test_full_config_loading_and_execution() {
     assert_eq!(config.templates.len(), 1);
     assert!(config.templates.contains_key("base"));
     let base = config.templates.get("base").unwrap();
-    assert_eq!(base.unshare, vec!["network"]);
+    assert_eq!(base.share, vec!["user"]);
     assert_eq!(base.ro_bind.len(), 2);
 
     // Verify node command
@@ -51,7 +49,7 @@ fn test_full_config_loading_and_execution() {
 
     // Verify merging with base
     let merged = config.merge_with_base(node_cmd);
-    assert!(merged.unshare.contains(&"network".to_string()));
+    assert!(merged.share.contains(&"user".to_string()));
     assert!(merged.ro_bind.contains(&"/usr".to_string()));
     assert_eq!(merged.env.get("NODE_ENV"), Some(&"production".to_string()));
 
@@ -69,7 +67,6 @@ fn test_bwrap_builder_integration() {
     let mut config = CommandConfig {
         enabled: true,
         extends: None,
-        unshare: vec!["network".to_string(), "pid".to_string()],
         share: vec![],
         bind: vec!["/tmp:/tmp".to_string()],
         ro_bind: vec!["/usr".to_string()],
@@ -83,7 +80,7 @@ fn test_bwrap_builder_integration() {
     let builder = BwrapBuilder::new(config);
     let args = builder.build_args();
 
-    // Verify all arguments are present
+    // All namespaces unshared by default
     assert!(args.contains(&"--unshare-net".to_string()));
     assert!(args.contains(&"--unshare-pid".to_string()));
     assert!(args.contains(&"--bind".to_string()));
@@ -106,11 +103,8 @@ fn test_config_with_all_features() {
     let config = BwrapConfig::load(indoc! {"
         templates:
           base:
-            unshare:
-              - network
-              - pid
             share:
-              - /home/user
+              - user
             ro_bind:
               - /usr
               - /lib
@@ -138,7 +132,6 @@ fn test_config_with_all_features() {
 
     // Verify all fields are populated correctly
     assert!(merged.enabled);
-    assert_eq!(merged.unshare.len(), 2);
     assert_eq!(merged.share.len(), 1);
     assert_eq!(merged.ro_bind.len(), 2);
     assert_eq!(merged.bind.len(), 1);
@@ -152,7 +145,9 @@ fn test_config_with_all_features() {
     let builder = BwrapBuilder::new(merged);
     let args = builder.build_args();
 
-    // Should contain all types of arguments
+    // User is shared, so no --unshare-user
+    assert!(!args.contains(&"--unshare-user".to_string()));
+    // But other namespaces should be unshared
     assert!(args.contains(&"--unshare-net".to_string()));
     assert!(args.contains(&"--unshare-pid".to_string()));
     assert!(args.contains(&"--dev-bind".to_string()));
@@ -168,12 +163,13 @@ fn test_multiple_commands_in_config() {
         commands:
           node:
             enabled: true
-            unshare:
+            share:
+              - user
               - network
           python:
             enabled: true
-            unshare:
-              - pid
+            share:
+              - user
           ruby:
             enabled: false
     "}).unwrap();
@@ -183,11 +179,11 @@ fn test_multiple_commands_in_config() {
     // Test each command
     let node = config.get_command_config("node").unwrap();
     assert!(node.enabled);
-    assert_eq!(node.unshare, vec!["network"]);
+    assert_eq!(node.share, vec!["user", "network"]);
 
     let python = config.get_command_config("python").unwrap();
     assert!(python.enabled);
-    assert_eq!(python.unshare, vec!["pid"]);
+    assert_eq!(python.share, vec!["user"]);
 
     let ruby = config.get_command_config("ruby").unwrap();
     assert!(!ruby.enabled);
@@ -219,7 +215,6 @@ fn test_command_show_formatting() {
     let config = CommandConfig {
         enabled: true,
         extends: None,
-        unshare: vec!["network".to_string()],
         share: vec![],
         bind: vec![],
         ro_bind: vec!["/usr".to_string()],
@@ -260,8 +255,8 @@ fn test_base_without_commands() {
     let config = BwrapConfig::load(indoc! {"
         templates:
           base:
-            unshare:
-              - network
+            share:
+              - user
     "}).unwrap();
 
     assert_eq!(config.templates.len(), 1);
@@ -275,12 +270,14 @@ fn test_custom_template_name() {
     let config = BwrapConfig::load(indoc! {"
         templates:
           minimal:
-            unshare:
+            share:
+              - user
               - network
           strict:
-            unshare:
-              - network
-              - pid
+            share:
+              - user
+            ro_bind:
+              - /usr
 
         commands:
           node:
@@ -299,11 +296,176 @@ fn test_custom_template_name() {
     // Test node with minimal template
     let node = config.get_command_config("node").unwrap();
     let merged_node = config.merge_with_template(node);
-    assert_eq!(merged_node.unshare, vec!["network"]);
+    assert_eq!(merged_node.share, vec!["user", "network"]);
     assert_eq!(merged_node.bind, vec!["~/.npm:~/.npm"]);
 
     // Test python with strict template
     let python = config.get_command_config("python").unwrap();
     let merged_python = config.merge_with_template(python);
-    assert_eq!(merged_python.unshare, vec!["network", "pid"]);
+    assert_eq!(merged_python.share, vec!["user"]);
+    assert_eq!(merged_python.ro_bind, vec!["/usr"]);
+}
+
+#[test]
+fn test_unshare_all_by_default_integration() {
+    use bwrap_manager::config::BwrapConfig;
+    use bwrap_manager::bwrap::BwrapBuilder;
+
+    // Test 1: Empty config should unshare all namespaces
+    let config = BwrapConfig::load(indoc! {"
+        commands:
+          isolated:
+            enabled: true
+            ro_bind:
+              - /usr
+    "}).unwrap();
+
+    let isolated_cmd = config.get_command_config("isolated").unwrap();
+    let builder = BwrapBuilder::new(isolated_cmd);
+    let cmd_line = builder.show("echo", &["test".to_string()]);
+
+    // All namespaces should be unshared
+    assert!(cmd_line.contains("--unshare-user"));
+    assert!(cmd_line.contains("--unshare-pid"));
+    assert!(cmd_line.contains("--unshare-net"));
+    assert!(cmd_line.contains("--unshare-ipc"));
+    assert!(cmd_line.contains("--unshare-uts"));
+    assert!(cmd_line.contains("--unshare-cgroup"));
+}
+
+#[test]
+fn test_share_specific_namespaces_integration() {
+    use bwrap_manager::config::BwrapConfig;
+    use bwrap_manager::bwrap::BwrapBuilder;
+
+    // Test 2: Share only user and network namespaces
+    let config = BwrapConfig::load(indoc! {"
+        commands:
+          network_enabled:
+            enabled: true
+            share:
+              - user
+              - network
+            ro_bind:
+              - /usr
+    "}).unwrap();
+
+    let network_cmd = config.get_command_config("network_enabled").unwrap();
+    let builder = BwrapBuilder::new(network_cmd);
+    let cmd_line = builder.show("echo", &["test".to_string()]);
+
+    // User and network should NOT be unshared
+    assert!(!cmd_line.contains("--unshare-user"));
+    assert!(!cmd_line.contains("--unshare-net"));
+
+    // Other namespaces should still be unshared
+    assert!(cmd_line.contains("--unshare-pid"));
+    assert!(cmd_line.contains("--unshare-ipc"));
+    assert!(cmd_line.contains("--unshare-uts"));
+    assert!(cmd_line.contains("--unshare-cgroup"));
+}
+
+#[test]
+fn test_share_multiple_namespaces_integration() {
+    use bwrap_manager::config::BwrapConfig;
+    use bwrap_manager::bwrap::BwrapBuilder;
+
+    // Test 3: Share user, network, and ipc namespaces
+    let config = BwrapConfig::load(indoc! {"
+        commands:
+          relaxed:
+            enabled: true
+            share:
+              - user
+              - network
+              - ipc
+            ro_bind:
+              - /usr
+    "}).unwrap();
+
+    let relaxed_cmd = config.get_command_config("relaxed").unwrap();
+    let builder = BwrapBuilder::new(relaxed_cmd);
+    let cmd_line = builder.show("echo", &["test".to_string()]);
+
+    // User, network, and ipc should NOT be unshared
+    assert!(!cmd_line.contains("--unshare-user"));
+    assert!(!cmd_line.contains("--unshare-net"));
+    assert!(!cmd_line.contains("--unshare-ipc"));
+
+    // Remaining namespaces should be unshared
+    assert!(cmd_line.contains("--unshare-pid"));
+    assert!(cmd_line.contains("--unshare-uts"));
+    assert!(cmd_line.contains("--unshare-cgroup"));
+}
+
+#[test]
+fn test_share_all_namespaces_integration() {
+    use bwrap_manager::config::BwrapConfig;
+    use bwrap_manager::bwrap::BwrapBuilder;
+
+    // Test 4: Share all namespaces (no isolation)
+    let config = BwrapConfig::load(indoc! {"
+        commands:
+          no_isolation:
+            enabled: true
+            share:
+              - user
+              - pid
+              - network
+              - ipc
+              - uts
+              - cgroup
+            ro_bind:
+              - /usr
+    "}).unwrap();
+
+    let no_isolation_cmd = config.get_command_config("no_isolation").unwrap();
+    let builder = BwrapBuilder::new(no_isolation_cmd);
+    let cmd_line = builder.show("echo", &["test".to_string()]);
+
+    // No namespaces should be unshared
+    assert!(!cmd_line.contains("--unshare-user"));
+    assert!(!cmd_line.contains("--unshare-pid"));
+    assert!(!cmd_line.contains("--unshare-net"));
+    assert!(!cmd_line.contains("--unshare-ipc"));
+    assert!(!cmd_line.contains("--unshare-uts"));
+    assert!(!cmd_line.contains("--unshare-cgroup"));
+}
+
+#[test]
+fn test_template_with_share_inheritance() {
+    use bwrap_manager::config::BwrapConfig;
+    use bwrap_manager::bwrap::BwrapBuilder;
+
+    // Test 5: Template inheritance with share
+    let config = BwrapConfig::load(indoc! {"
+        templates:
+          base:
+            share:
+              - user
+            ro_bind:
+              - /usr
+              - /lib
+
+        commands:
+          app:
+            extends: base
+            share:
+              - network
+    "}).unwrap();
+
+    let app_cmd = config.get_command_config("app").unwrap();
+    let merged = config.merge_with_template(app_cmd);
+    let builder = BwrapBuilder::new(merged);
+    let cmd_line = builder.show("echo", &["test".to_string()]);
+
+    // User and network should NOT be unshared (inherited + added)
+    assert!(!cmd_line.contains("--unshare-user"));
+    assert!(!cmd_line.contains("--unshare-net"));
+
+    // Other namespaces should be unshared
+    assert!(cmd_line.contains("--unshare-pid"));
+    assert!(cmd_line.contains("--unshare-ipc"));
+    assert!(cmd_line.contains("--unshare-uts"));
+    assert!(cmd_line.contains("--unshare-cgroup"));
 }

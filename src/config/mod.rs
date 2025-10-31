@@ -17,8 +17,6 @@ pub struct BwrapConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TemplateConfig {
     #[serde(default)]
-    pub unshare: Vec<String>,
-    #[serde(default)]
     pub share: Vec<String>,
     #[serde(default)]
     pub bind: Vec<String>,
@@ -32,8 +30,6 @@ pub struct CommandConfig {
     pub enabled: bool,
     #[serde(default)]
     pub extends: Option<String>,
-    #[serde(default)]
-    pub unshare: Vec<String>,
     #[serde(default)]
     pub share: Vec<String>,
     #[serde(default)]
@@ -75,7 +71,6 @@ impl BwrapConfig {
         if let Some(extends) = &cmd_config.extends {
             if let Some(template) = self.templates.get(extends) {
                 // Merge template config into command config
-                cmd_config.unshare.extend(template.unshare.clone());
                 cmd_config.share.extend(template.share.clone());
                 cmd_config.bind.extend(template.bind.clone());
                 cmd_config.ro_bind.extend(template.ro_bind.clone());
@@ -103,7 +98,8 @@ mod tests {
             commands:
               node:
                 enabled: true
-                unshare:
+                share:
+                  - user
                   - network
                 bind:
                   - ~/.npm:~/.npm
@@ -113,7 +109,7 @@ mod tests {
 
         let node_cmd = config.commands.get("node").unwrap();
         assert!(node_cmd.enabled);
-        assert_eq!(node_cmd.unshare, vec!["network"]);
+        assert_eq!(node_cmd.share, vec!["user", "network"]);
         assert_eq!(node_cmd.bind, vec!["~/.npm:~/.npm"]);
     }
 
@@ -122,9 +118,8 @@ mod tests {
         let config = BwrapConfig::load(indoc! {"
             templates:
               base:
-                unshare:
-                  - network
-                  - pid
+                share:
+                  - user
                 ro_bind:
                   - /usr
                   - /lib
@@ -139,7 +134,7 @@ mod tests {
         assert!(config.templates.contains_key("base"));
 
         let base = config.templates.get("base").unwrap();
-        assert_eq!(base.unshare, vec!["network", "pid"]);
+        assert_eq!(base.share, vec!["user"]);
         assert_eq!(base.ro_bind, vec!["/usr", "/lib"]);
 
         let node_cmd = config.commands.get("node").unwrap();
@@ -166,8 +161,8 @@ mod tests {
         let config = BwrapConfig::load(indoc! {"
             templates:
               base:
-                unshare:
-                  - network
+                share:
+                  - user
                 ro_bind:
                   - /usr
 
@@ -181,7 +176,7 @@ mod tests {
         let merged = config.merge_with_base(node_cmd);
 
         // Should have both base and command-specific settings
-        assert_eq!(merged.unshare, vec!["network"]);
+        assert_eq!(merged.share, vec!["user"]);
         assert_eq!(merged.ro_bind, vec!["/usr"]);
         assert_eq!(merged.bind, vec!["~/.npm:~/.npm"]);
     }
@@ -191,8 +186,8 @@ mod tests {
         let config = BwrapConfig::load(indoc! {"
             templates:
               base:
-                unshare:
-                  - network
+                share:
+                  - user
 
             commands:
               node:
@@ -203,7 +198,7 @@ mod tests {
         let merged = config.merge_with_base(node_cmd.clone());
 
         // Should not merge base since extends is not set
-        assert_eq!(merged.unshare, node_cmd.unshare);
+        assert_eq!(merged.share, node_cmd.share);
         assert_eq!(merged.bind, node_cmd.bind);
     }
 
@@ -227,8 +222,8 @@ mod tests {
         let config = BwrapConfig::load(indoc! {"
             commands:
               node:
-                unshare:
-                  - network
+                share:
+                  - user
         "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         // enabled should default to true
@@ -241,8 +236,8 @@ mod tests {
             commands:
               node:
                 enabled: false
-                unshare:
-                  - network
+                share:
+                  - user
         "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert!(!node_cmd.enabled);
@@ -300,13 +295,12 @@ mod tests {
         let config = BwrapConfig::load(indoc! {"
             templates:
               minimal:
-                unshare:
+                share:
+                  - user
                   - network
               strict:
-                unshare:
-                  - network
-                  - pid
-                  - ipc
+                share:
+                  - user
                 ro_bind:
                   - /usr
 
@@ -330,14 +324,14 @@ mod tests {
         let node_cmd = config.get_command_config("node").unwrap();
         assert_eq!(node_cmd.extends, Some("minimal".to_string()));
         let merged_node = config.merge_with_template(node_cmd);
-        assert_eq!(merged_node.unshare, vec!["network"]);
+        assert_eq!(merged_node.share, vec!["user", "network"]);
         assert_eq!(merged_node.bind, vec!["~/.npm:~/.npm"]);
 
         // Test python with strict template
         let python_cmd = config.get_command_config("python").unwrap();
         assert_eq!(python_cmd.extends, Some("strict".to_string()));
         let merged_python = config.merge_with_template(python_cmd);
-        assert_eq!(merged_python.unshare, vec!["network", "pid", "ipc"]);
+        assert_eq!(merged_python.share, vec!["user"]);
         assert_eq!(merged_python.ro_bind, vec!["/usr"]);
         assert_eq!(merged_python.bind, vec!["~/.local:~/.local"]);
     }
@@ -347,8 +341,8 @@ mod tests {
         let config = BwrapConfig::load(indoc! {"
             templates:
               base:
-                unshare:
-                  - network
+                share:
+                  - user
 
             commands:
               node:
@@ -360,7 +354,7 @@ mod tests {
         let merged = config.merge_with_template(node_cmd.clone());
 
         // Should not merge anything, just return the original command config
-        assert_eq!(merged.unshare, node_cmd.unshare);
+        assert_eq!(merged.share, node_cmd.share);
         assert_eq!(merged.bind, node_cmd.bind);
     }
 }
