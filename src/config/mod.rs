@@ -55,14 +55,16 @@ fn default_enabled() -> bool {
 }
 
 impl BwrapConfig {
+    pub fn load(yaml: &str) -> Result<Self> {
+        let config: BwrapConfig =
+            serde_yaml::from_str(yaml).context("Failed to parse YAML config")?;
+        Ok(config)
+    }
+
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let content = fs::read_to_string(path.as_ref())
             .context(format!("Failed to read config file: {:?}", path.as_ref()))?;
-
-        let config: BwrapConfig = serde_yaml::from_str(&content)
-            .context("Failed to parse YAML config")?;
-
-        Ok(config)
+        Self::load(&content)
     }
 
     pub fn get_command_config(&self, command: &str) -> Option<CommandConfig> {
@@ -91,21 +93,21 @@ impl BwrapConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use indoc::indoc;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
     #[test]
     fn test_parse_basic_config() {
-        let yaml = r#"
-commands:
-  node:
-    enabled: true
-    unshare:
-      - network
-    bind:
-      - ~/.npm:~/.npm
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                enabled: true
+                unshare:
+                  - network
+                bind:
+                  - ~/.npm:~/.npm
+        "}).unwrap();
         assert_eq!(config.commands.len(), 1);
         assert!(config.commands.contains_key("node"));
 
@@ -117,23 +119,22 @@ commands:
 
     #[test]
     fn test_parse_config_with_base() {
-        let yaml = r#"
-templates:
-  base:
-    unshare:
-      - network
-      - pid
-    ro_bind:
-      - /usr
-      - /lib
+        let config = BwrapConfig::load(indoc! {"
+            templates:
+              base:
+                unshare:
+                  - network
+                  - pid
+                ro_bind:
+                  - /usr
+                  - /lib
 
-commands:
-  node:
-    extends: base
-    bind:
-      - ~/.npm:~/.npm
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+            commands:
+              node:
+                extends: base
+                bind:
+                  - ~/.npm:~/.npm
+        "}).unwrap();
         assert_eq!(config.templates.len(), 1);
         assert!(config.templates.contains_key("base"));
 
@@ -147,14 +148,13 @@ commands:
 
     #[test]
     fn test_get_command_config() {
-        let yaml = r#"
-commands:
-  node:
-    enabled: true
-  python:
-    enabled: false
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                enabled: true
+              python:
+                enabled: false
+        "}).unwrap();
 
         assert!(config.get_command_config("node").is_some());
         assert!(config.get_command_config("python").is_some());
@@ -163,21 +163,20 @@ commands:
 
     #[test]
     fn test_merge_with_base() {
-        let yaml = r#"
-templates:
-  base:
-    unshare:
-      - network
-    ro_bind:
-      - /usr
+        let config = BwrapConfig::load(indoc! {"
+            templates:
+              base:
+                unshare:
+                  - network
+                ro_bind:
+                  - /usr
 
-commands:
-  node:
-    extends: base
-    bind:
-      - ~/.npm:~/.npm
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+            commands:
+              node:
+                extends: base
+                bind:
+                  - ~/.npm:~/.npm
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         let merged = config.merge_with_base(node_cmd);
 
@@ -189,18 +188,17 @@ commands:
 
     #[test]
     fn test_merge_without_extends() {
-        let yaml = r#"
-templates:
-  base:
-    unshare:
-      - network
+        let config = BwrapConfig::load(indoc! {"
+            templates:
+              base:
+                unshare:
+                  - network
 
-commands:
-  node:
-    bind:
-      - ~/.npm:~/.npm
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+            commands:
+              node:
+                bind:
+                  - ~/.npm:~/.npm
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         let merged = config.merge_with_base(node_cmd.clone());
 
@@ -211,11 +209,11 @@ commands:
 
     #[test]
     fn test_from_file() {
-        let yaml = r#"
-commands:
-  test:
-    enabled: true
-"#;
+        let yaml = indoc! {"
+            commands:
+              test:
+                enabled: true
+        "};
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(yaml.as_bytes()).unwrap();
 
@@ -226,13 +224,12 @@ commands:
 
     #[test]
     fn test_default_enabled() {
-        let yaml = r#"
-commands:
-  node:
-    unshare:
-      - network
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                unshare:
+                  - network
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         // enabled should default to true
         assert!(node_cmd.enabled);
@@ -240,91 +237,89 @@ commands:
 
     #[test]
     fn test_disabled_command() {
-        let yaml = r#"
-commands:
-  node:
-    enabled: false
-    unshare:
-      - network
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                enabled: false
+                unshare:
+                  - network
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert!(!node_cmd.enabled);
     }
 
     #[test]
     fn test_env_variables() {
-        let yaml = r#"
-commands:
-  node:
-    env:
-      NODE_ENV: production
-      PATH: /custom/path
-    unset_env:
-      - DEBUG
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                env:
+                  NODE_ENV: production
+                  PATH: /custom/path
+                unset_env:
+                  - DEBUG
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
 
         assert_eq!(node_cmd.env.len(), 2);
-        assert_eq!(node_cmd.env.get("NODE_ENV"), Some(&"production".to_string()));
+        assert_eq!(
+            node_cmd.env.get("NODE_ENV"),
+            Some(&"production".to_string())
+        );
         assert_eq!(node_cmd.unset_env, vec!["DEBUG"]);
     }
 
     #[test]
     fn test_tmpfs() {
-        let yaml = r#"
-commands:
-  node:
-    tmpfs:
-      - /tmp
-      - /var/tmp
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                tmpfs:
+                  - /tmp
+                  - /var/tmp
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert_eq!(node_cmd.tmpfs, vec!["/tmp", "/var/tmp"]);
     }
 
     #[test]
     fn test_dev_bind() {
-        let yaml = r#"
-commands:
-  node:
-    dev_bind:
-      - /dev/null
-      - /dev/random
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+        let config = BwrapConfig::load(indoc! {"
+            commands:
+              node:
+                dev_bind:
+                  - /dev/null
+                  - /dev/random
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert_eq!(node_cmd.dev_bind, vec!["/dev/null", "/dev/random"]);
     }
 
     #[test]
     fn test_custom_template_names() {
-        let yaml = r#"
-templates:
-  minimal:
-    unshare:
-      - network
-  strict:
-    unshare:
-      - network
-      - pid
-      - ipc
-    ro_bind:
-      - /usr
+        let config = BwrapConfig::load(indoc! {"
+            templates:
+              minimal:
+                unshare:
+                  - network
+              strict:
+                unshare:
+                  - network
+                  - pid
+                  - ipc
+                ro_bind:
+                  - /usr
 
-commands:
-  node:
-    extends: minimal
-    bind:
-      - ~/.npm:~/.npm
-  python:
-    extends: strict
-    bind:
-      - ~/.local:~/.local
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+            commands:
+              node:
+                extends: minimal
+                bind:
+                  - ~/.npm:~/.npm
+              python:
+                extends: strict
+                bind:
+                  - ~/.local:~/.local
+        "}).unwrap();
 
         // Verify templates exist
         assert_eq!(config.templates.len(), 2);
@@ -349,19 +344,18 @@ commands:
 
     #[test]
     fn test_nonexistent_template() {
-        let yaml = r#"
-templates:
-  base:
-    unshare:
-      - network
+        let config = BwrapConfig::load(indoc! {"
+            templates:
+              base:
+                unshare:
+                  - network
 
-commands:
-  node:
-    extends: nonexistent
-    bind:
-      - ~/.npm:~/.npm
-"#;
-        let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
+            commands:
+              node:
+                extends: nonexistent
+                bind:
+                  - ~/.npm:~/.npm
+        "}).unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         let merged = config.merge_with_template(node_cmd.clone());
 
