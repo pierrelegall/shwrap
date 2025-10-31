@@ -3,4 +3,4 @@ pub mod config;
 
 // Re-export commonly used types
 pub use bwrap::BwrapBuilder;
-pub use config::{BwrapConfig, CommandConfig, BaseConfig, loader};
+pub use config::{BwrapConfig, CommandConfig, BaseConfig, Templates, loader};

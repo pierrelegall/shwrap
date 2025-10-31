@@ -11,6 +11,12 @@ pub struct BwrapConfig {
     #[serde(default)]
     pub commands: HashMap<String, CommandConfig>,
     #[serde(default)]
+    pub templates: Option<Templates>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Templates {
+    #[serde(default)]
     pub base: Option<BaseConfig>,
 }
 
@@ -72,12 +78,14 @@ impl BwrapConfig {
     pub fn merge_with_base(&self, mut cmd_config: CommandConfig) -> CommandConfig {
         if let Some(extends) = &cmd_config.extends {
             if extends == "base" {
-                if let Some(base) = &self.base {
-                    // Merge base config into command config
-                    cmd_config.unshare.extend(base.unshare.clone());
-                    cmd_config.share.extend(base.share.clone());
-                    cmd_config.bind.extend(base.bind.clone());
-                    cmd_config.ro_bind.extend(base.ro_bind.clone());
+                if let Some(templates) = &self.templates {
+                    if let Some(base) = &templates.base {
+                        // Merge base config into command config
+                        cmd_config.unshare.extend(base.unshare.clone());
+                        cmd_config.share.extend(base.share.clone());
+                        cmd_config.bind.extend(base.bind.clone());
+                        cmd_config.ro_bind.extend(base.ro_bind.clone());
+                    }
                 }
             }
         }
@@ -115,13 +123,14 @@ commands:
     #[test]
     fn test_parse_config_with_base() {
         let yaml = r#"
-base:
-  unshare:
-    - network
-    - pid
-  ro_bind:
-    - /usr
-    - /lib
+templates:
+  base:
+    unshare:
+      - network
+      - pid
+    ro_bind:
+      - /usr
+      - /lib
 
 commands:
   node:
@@ -130,9 +139,12 @@ commands:
       - ~/.npm:~/.npm
 "#;
         let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
-        assert!(config.base.is_some());
+        assert!(config.templates.is_some());
 
-        let base = config.base.as_ref().unwrap();
+        let templates = config.templates.as_ref().unwrap();
+        assert!(templates.base.is_some());
+
+        let base = templates.base.as_ref().unwrap();
         assert_eq!(base.unshare, vec!["network", "pid"]);
         assert_eq!(base.ro_bind, vec!["/usr", "/lib"]);
 
@@ -159,11 +171,12 @@ commands:
     #[test]
     fn test_merge_with_base() {
         let yaml = r#"
-base:
-  unshare:
-    - network
-  ro_bind:
-    - /usr
+templates:
+  base:
+    unshare:
+      - network
+    ro_bind:
+      - /usr
 
 commands:
   node:
@@ -184,9 +197,10 @@ commands:
     #[test]
     fn test_merge_without_extends() {
         let yaml = r#"
-base:
-  unshare:
-    - network
+templates:
+  base:
+    unshare:
+      - network
 
 commands:
   node:

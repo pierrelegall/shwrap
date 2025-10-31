@@ -7,12 +7,13 @@ fn test_full_config_loading_and_execution() {
     let config_path = temp_dir.path().join(".bwrap");
 
     let yaml = r#"
-base:
-  unshare:
-    - network
-  ro_bind:
-    - /usr
-    - /lib
+templates:
+  base:
+    unshare:
+      - network
+    ro_bind:
+      - /usr
+      - /lib
 
 commands:
   node:
@@ -35,9 +36,11 @@ commands:
     use bwrap_manager::config::BwrapConfig;
     let config = BwrapConfig::from_file(&config_path).unwrap();
 
-    // Verify base config
-    assert!(config.base.is_some());
-    let base = config.base.as_ref().unwrap();
+    // Verify templates/base config
+    assert!(config.templates.is_some());
+    let templates = config.templates.as_ref().unwrap();
+    assert!(templates.base.is_some());
+    let base = templates.base.as_ref().unwrap();
     assert_eq!(base.unshare, vec!["network"]);
     assert_eq!(base.ro_bind.len(), 2);
 
@@ -100,17 +103,18 @@ fn test_bwrap_builder_integration() {
 #[test]
 fn test_config_with_all_features() {
     let yaml = r#"
-base:
-  unshare:
-    - network
-    - pid
-  share:
-    - /home/user
-  ro_bind:
-    - /usr
-    - /lib
-  bind:
-    - /src:/dest
+templates:
+  base:
+    unshare:
+      - network
+      - pid
+    share:
+      - /home/user
+    ro_bind:
+      - /usr
+      - /lib
+    bind:
+      - /src:/dest
 
 commands:
   test:
@@ -261,15 +265,18 @@ commands: {}
 #[test]
 fn test_base_without_commands() {
     let yaml = r#"
-base:
-  unshare:
-    - network
+templates:
+  base:
+    unshare:
+      - network
 "#;
 
     use bwrap_manager::config::BwrapConfig;
     let config: BwrapConfig = serde_yaml::from_str(yaml).unwrap();
 
-    assert!(config.base.is_some());
+    assert!(config.templates.is_some());
+    let templates = config.templates.as_ref().unwrap();
+    assert!(templates.base.is_some());
     assert_eq!(config.commands.len(), 0);
 }
 
