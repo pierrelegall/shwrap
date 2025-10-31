@@ -11,11 +11,11 @@ pub struct BwrapConfig {
     #[serde(default)]
     pub commands: HashMap<String, CommandConfig>,
     #[serde(default)]
-    pub templates: HashMap<String, TemplateConfig>,
+    pub models: HashMap<String, ModelConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TemplateConfig {
+pub struct ModelConfig {
     #[serde(default)]
     pub share: Vec<String>,
     #[serde(default)]
@@ -69,7 +69,7 @@ impl BwrapConfig {
 
     pub fn merge_with_template(&self, mut cmd_config: CommandConfig) -> CommandConfig {
         if let Some(extends) = &cmd_config.extends {
-            if let Some(template) = self.templates.get(extends) {
+            if let Some(template) = self.models.get(extends) {
                 // Merge template config into command config
                 cmd_config.share.extend(template.share.clone());
                 cmd_config.bind.extend(template.bind.clone());
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn test_parse_config_with_base() {
         let config = BwrapConfig::load(indoc! {"
-            templates:
+            models:
               base:
                 share:
                   - user
@@ -130,10 +130,10 @@ mod tests {
                 bind:
                   - ~/.npm:~/.npm
         "}).unwrap();
-        assert_eq!(config.templates.len(), 1);
-        assert!(config.templates.contains_key("base"));
+        assert_eq!(config.models.len(), 1);
+        assert!(config.models.contains_key("base"));
 
-        let base = config.templates.get("base").unwrap();
+        let base = config.models.get("base").unwrap();
         assert_eq!(base.share, vec!["user"]);
         assert_eq!(base.ro_bind, vec!["/usr", "/lib"]);
 
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn test_merge_with_base() {
         let config = BwrapConfig::load(indoc! {"
-            templates:
+            models:
               base:
                 share:
                   - user
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn test_merge_without_extends() {
         let config = BwrapConfig::load(indoc! {"
-            templates:
+            models:
               base:
                 share:
                   - user
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn test_custom_template_names() {
         let config = BwrapConfig::load(indoc! {"
-            templates:
+            models:
               minimal:
                 share:
                   - user
@@ -316,9 +316,9 @@ mod tests {
         "}).unwrap();
 
         // Verify templates exist
-        assert_eq!(config.templates.len(), 2);
-        assert!(config.templates.contains_key("minimal"));
-        assert!(config.templates.contains_key("strict"));
+        assert_eq!(config.models.len(), 2);
+        assert!(config.models.contains_key("minimal"));
+        assert!(config.models.contains_key("strict"));
 
         // Test node with minimal template
         let node_cmd = config.get_command_config("node").unwrap();
@@ -339,7 +339,7 @@ mod tests {
     #[test]
     fn test_nonexistent_template() {
         let config = BwrapConfig::load(indoc! {"
-            templates:
+            models:
               base:
                 share:
                   - user

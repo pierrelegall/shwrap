@@ -8,7 +8,7 @@ fn test_full_config_loading_and_execution() {
     let config_path = temp_dir.path().join(".bwrap");
 
     let yaml = indoc! {"
-        templates:
+        models:
           base:
             share:
               - user
@@ -36,9 +36,9 @@ fn test_full_config_loading_and_execution() {
     let config = BwrapConfig::from_file(&config_path).unwrap();
 
     // Verify templates/base config
-    assert_eq!(config.templates.len(), 1);
-    assert!(config.templates.contains_key("base"));
-    let base = config.templates.get("base").unwrap();
+    assert_eq!(config.models.len(), 1);
+    assert!(config.models.contains_key("base"));
+    let base = config.models.get("base").unwrap();
     assert_eq!(base.share, vec!["user"]);
     assert_eq!(base.ro_bind.len(), 2);
 
@@ -101,7 +101,7 @@ fn test_bwrap_builder_integration() {
 fn test_config_with_all_features() {
     use bwrap_manager::config::BwrapConfig;
     let config = BwrapConfig::load(indoc! {"
-        templates:
+        models:
           base:
             share:
               - user
@@ -253,14 +253,14 @@ fn test_empty_commands_section() {
 fn test_base_without_commands() {
     use bwrap_manager::config::BwrapConfig;
     let config = BwrapConfig::load(indoc! {"
-        templates:
+        models:
           base:
             share:
               - user
     "}).unwrap();
 
-    assert_eq!(config.templates.len(), 1);
-    assert!(config.templates.contains_key("base"));
+    assert_eq!(config.models.len(), 1);
+    assert!(config.models.contains_key("base"));
     assert_eq!(config.commands.len(), 0);
 }
 
@@ -268,7 +268,7 @@ fn test_base_without_commands() {
 fn test_custom_template_name() {
     use bwrap_manager::config::BwrapConfig;
     let config = BwrapConfig::load(indoc! {"
-        templates:
+        models:
           minimal:
             share:
               - user
@@ -289,9 +289,9 @@ fn test_custom_template_name() {
     "}).unwrap();
 
     // Verify templates
-    assert_eq!(config.templates.len(), 2);
-    assert!(config.templates.contains_key("minimal"));
-    assert!(config.templates.contains_key("strict"));
+    assert_eq!(config.models.len(), 2);
+    assert!(config.models.contains_key("minimal"));
+    assert!(config.models.contains_key("strict"));
 
     // Test node with minimal template
     let node = config.get_command_config("node").unwrap();
@@ -439,7 +439,7 @@ fn test_template_with_share_inheritance() {
 
     // Test 5: Template inheritance with share
     let config = BwrapConfig::load(indoc! {"
-        templates:
+        models:
           base:
             share:
               - user
