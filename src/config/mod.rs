@@ -51,16 +51,21 @@ fn default_enabled() -> bool {
 }
 
 impl BwrapConfig {
-    pub fn load(yaml: &str) -> Result<Self> {
+    pub fn from_yaml(yaml: &str) -> Result<Self> {
         let config: BwrapConfig =
             serde_yaml::from_str(yaml).context("Failed to parse YAML config")?;
+
         Ok(config)
     }
 
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let content = fs::read_to_string(path.as_ref())
+        let yaml = fs::read_to_string(path.as_ref())
             .context(format!("Failed to read config file: {:?}", path.as_ref()))?;
-        Self::load(&content)
+
+        let config: BwrapConfig = serde_yaml::from_str(&yaml)
+            .context(format!("Failed to parse YAML config {:?}", path.as_ref()))?;
+
+        Ok(config)
     }
 
     pub fn get_command_config(&self, command: &str) -> Option<CommandConfig> {
@@ -76,6 +81,7 @@ impl BwrapConfig {
                 cmd_config.ro_bind.extend(template.ro_bind.clone());
             }
         }
+
         cmd_config
     }
 
@@ -94,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_parse_basic_config() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 enabled: true
@@ -103,7 +109,8 @@ mod tests {
                   - network
                 bind:
                   - ~/.npm:~/.npm
-        "}).unwrap();
+        "})
+        .unwrap();
         assert_eq!(config.commands.len(), 1);
         assert!(config.commands.contains_key("node"));
 
@@ -115,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_parse_config_with_base() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             models:
               base:
                 share:
@@ -129,7 +136,8 @@ mod tests {
                 extends: base
                 bind:
                   - ~/.npm:~/.npm
-        "}).unwrap();
+        "})
+        .unwrap();
         assert_eq!(config.models.len(), 1);
         assert!(config.models.contains_key("base"));
 
@@ -143,13 +151,14 @@ mod tests {
 
     #[test]
     fn test_get_command_config() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 enabled: true
               python:
                 enabled: false
-        "}).unwrap();
+        "})
+        .unwrap();
 
         assert!(config.get_command_config("node").is_some());
         assert!(config.get_command_config("python").is_some());
@@ -158,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_merge_with_base() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             models:
               base:
                 share:
@@ -171,7 +180,8 @@ mod tests {
                 extends: base
                 bind:
                   - ~/.npm:~/.npm
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         let merged = config.merge_with_base(node_cmd);
 
@@ -183,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_merge_without_extends() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             models:
               base:
                 share:
@@ -193,7 +203,8 @@ mod tests {
               node:
                 bind:
                   - ~/.npm:~/.npm
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         let merged = config.merge_with_base(node_cmd.clone());
 
@@ -219,12 +230,13 @@ mod tests {
 
     #[test]
     fn test_default_enabled() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 share:
                   - user
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         // enabled should default to true
         assert!(node_cmd.enabled);
@@ -232,20 +244,21 @@ mod tests {
 
     #[test]
     fn test_disabled_command() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 enabled: false
                 share:
                   - user
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert!(!node_cmd.enabled);
     }
 
     #[test]
     fn test_env_variables() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 env:
@@ -253,7 +266,8 @@ mod tests {
                   PATH: /custom/path
                 unset_env:
                   - DEBUG
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
 
         assert_eq!(node_cmd.env.len(), 2);
@@ -266,33 +280,35 @@ mod tests {
 
     #[test]
     fn test_tmpfs() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 tmpfs:
                   - /tmp
                   - /var/tmp
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert_eq!(node_cmd.tmpfs, vec!["/tmp", "/var/tmp"]);
     }
 
     #[test]
     fn test_dev_bind() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             commands:
               node:
                 dev_bind:
                   - /dev/null
                   - /dev/random
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         assert_eq!(node_cmd.dev_bind, vec!["/dev/null", "/dev/random"]);
     }
 
     #[test]
     fn test_custom_template_names() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             models:
               minimal:
                 share:
@@ -313,7 +329,8 @@ mod tests {
                 extends: strict
                 bind:
                   - ~/.local:~/.local
-        "}).unwrap();
+        "})
+        .unwrap();
 
         // Verify templates exist
         assert_eq!(config.models.len(), 2);
@@ -338,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_nonexistent_template() {
-        let config = BwrapConfig::load(indoc! {"
+        let config = BwrapConfig::from_yaml(indoc! {"
             models:
               base:
                 share:
@@ -349,7 +366,8 @@ mod tests {
                 extends: nonexistent
                 bind:
                   - ~/.npm:~/.npm
-        "}).unwrap();
+        "})
+        .unwrap();
         let node_cmd = config.get_command_config("node").unwrap();
         let merged = config.merge_with_template(node_cmd.clone());
 
