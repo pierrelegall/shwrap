@@ -1,5 +1,5 @@
 mod cli;
-mod hooks;
+mod shell_hooks;
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
@@ -7,7 +7,7 @@ use clap::Parser;
 use bwrap_manager::bwrap::BwrapBuilder;
 use bwrap_manager::config::{self, loader::ConfigLoader};
 use cli::{Cli, Commands};
-// use hooks::Shell;
+use shell_hooks::Shell;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -166,16 +166,14 @@ fn cmd_show(command: &str, args: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn cmd_shell_hook(_shell_name: &str) -> Result<()> {
-    // let shell =
-    //     Shell::from_str(shell_name).context(format!("Unsupported shell: {}", shell_name))?;
+fn cmd_shell_hook(shell_name: &str) -> Result<()> {
+    let shell =
+        Shell::from_str(shell_name).context(format!("Unsupported shell: {}", shell_name))?;
 
-    // let hook = shell.get_hook();
-    // let script = hook.generate()?;
+    let hook = shell.get_hook();
+    let script = hook.generate()?;
 
-    // print!("{}", script);
-
-    print!("Command not yet supported");
+    print!("{}", script);
 
     Ok(())
 }
