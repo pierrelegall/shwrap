@@ -109,12 +109,23 @@ fn test_load_without_config() {
     let temp_dir = TempDir::new().unwrap();
 
     let original_dir = env::current_dir().unwrap();
+    let original_home = env::var("HOME").ok();
+
+    // Set HOME to temp dir to avoid finding user config
+    env::set_var("HOME", temp_dir.path());
     env::set_current_dir(&temp_dir).unwrap();
 
     let config = ConfigLoader::load().unwrap();
     assert!(config.is_none());
 
     env::set_current_dir(original_dir).unwrap();
+
+    // Restore original HOME
+    if let Some(home) = original_home {
+        env::set_var("HOME", home);
+    } else {
+        env::remove_var("HOME");
+    }
 }
 
 #[test]
