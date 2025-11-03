@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "bwrap-manager")]
+#[command(name = "shwrap")]
 #[command(about = "A profile manager for Bubblewrap (bwrap)", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
@@ -10,7 +10,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Initialize a new .bwrap file with templates
+    /// Initialize a new .shwrap file with templates
     Init {
         /// Template to use (nodejs, python, ruby, go, rust)
         #[arg(short, long)]
@@ -40,7 +40,7 @@ pub enum Commands {
     /// List active profiles and configurations
     List,
 
-    /// Show which .bwrap file would be used
+    /// Show which .shwrap file would be used
     Which,
 
     /// Show the bwrap command that would be executed

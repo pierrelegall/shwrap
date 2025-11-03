@@ -16,7 +16,7 @@ __shwrap_log() {
 # Wrap command execution
 __shwrap_wrap_command() {
   __shwrap_log "Executing wrapped command: $@"
-  bwrap-command exec "$@"
+  shwrap exec "$@"
 }
 
 # Set all wrapped commands
@@ -26,7 +26,7 @@ __shwrap_set_wrapped_commands() {
       __shwrap_log "Set wrapped commands: $cmd"
       eval "
         $cmd() {
-          __shwrap_wrap_command $cmd \"$@\"
+          __shwrap_wrap_command $cmd \"\$@\"
         }
       "
     fi
@@ -35,7 +35,7 @@ __shwrap_set_wrapped_commands() {
 
 # Refresh SHWRAP_WRAPPED_COMMANDS variable
 __shwrap_refresh_wrapped_commands() {
-  SHWRAP_WRAPPED_COMMANDS=$(bwrap-manager list 2>/dev/null | grep -oE '^[a-zA-Z0-9_-]+:' | cut -d: -f1)
+  SHWRAP_WRAPPED_COMMANDS=$(shwrap list 2>/dev/null | grep -oE '^[a-zA-Z0-9_-]+:' | cut -d: -f1)
 }
 
 # Unset all wrapped commands
@@ -57,7 +57,7 @@ __shwrap_on_directory_change() {
 
 # Main hook that detects PWD changes
 __shwrap_chpwd_hook() {
-  __shwrap_log "CHPWD hook called ($SHWRAP_PREV_PWD -> $PWD)"  
+  __shwrap_log "CHPWD hook called"
   if [[ "$SHWRAP_PREV_PWD" != "$PWD" ]]; then
     __shwrap_log "Directory changed detected: $PWD"
     __shwrap_on_directory_change

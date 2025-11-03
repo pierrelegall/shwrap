@@ -5,7 +5,7 @@ use tempfile::TempDir;
 #[test]
 fn test_full_config_loading_and_execution() {
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".bwrap");
+    let config_path = temp_dir.path().join(".shwrap");
 
     let yaml = indoc! {"
         models:
@@ -32,7 +32,7 @@ fn test_full_config_loading_and_execution() {
     fs::write(&config_path, yaml).unwrap();
 
     // Load and verify config
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
     let config = BwrapConfig::from_file(&config_path).unwrap();
 
     // Verify templates/base config
@@ -60,8 +60,8 @@ fn test_full_config_loading_and_execution() {
 
 #[test]
 fn test_bwrap_builder_integration() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::CommandConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::CommandConfig;
     use std::collections::HashMap;
 
     let mut config = CommandConfig {
@@ -99,7 +99,7 @@ fn test_bwrap_builder_integration() {
 
 #[test]
 fn test_config_with_all_features() {
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
     let config = BwrapConfig::from_yaml(indoc! {"
         models:
           base:
@@ -142,7 +142,7 @@ fn test_config_with_all_features() {
     assert_eq!(merged.unset_env.len(), 2);
 
     // Build and verify bwrap args
-    use bwrap_manager::bwrap::BwrapBuilder;
+    use shwrap::bwrap::BwrapBuilder;
     let builder = BwrapBuilder::new(merged);
     let args = builder.build_args();
 
@@ -159,7 +159,7 @@ fn test_config_with_all_features() {
 
 #[test]
 fn test_multiple_commands_in_config() {
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
     let config = BwrapConfig::from_yaml(indoc! {"
         commands:
           node:
@@ -193,7 +193,7 @@ fn test_multiple_commands_in_config() {
 
 #[test]
 fn test_config_error_handling() {
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
 
     // Invalid YAML should error
     let result = BwrapConfig::from_yaml(indoc! {"
@@ -204,14 +204,14 @@ fn test_config_error_handling() {
     assert!(result.is_err());
 
     // Non-existent file should error
-    let result = BwrapConfig::from_file("/nonexistent/path/.bwrap");
+    let result = BwrapConfig::from_file("/nonexistent/path/.shwrap");
     assert!(result.is_err());
 }
 
 #[test]
 fn test_command_show_formatting() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::CommandConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::CommandConfig;
     use std::collections::HashMap;
 
     let config = CommandConfig {
@@ -242,7 +242,7 @@ fn test_command_show_formatting() {
 
 #[test]
 fn test_empty_commands_section() {
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
     let config = BwrapConfig::from_yaml(indoc! {"
         commands: {}
     "})
@@ -254,7 +254,7 @@ fn test_empty_commands_section() {
 
 #[test]
 fn test_base_without_commands() {
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
     let config = BwrapConfig::from_yaml(indoc! {"
         models:
           base:
@@ -270,7 +270,7 @@ fn test_base_without_commands() {
 
 #[test]
 fn test_custom_template_name() {
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::config::BwrapConfig;
     let config = BwrapConfig::from_yaml(indoc! {"
         models:
           minimal:
@@ -313,8 +313,8 @@ fn test_custom_template_name() {
 
 #[test]
 fn test_unshare_all_by_default_integration() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::BwrapConfig;
 
     // Test 1: Empty config should unshare all namespaces
     let config = BwrapConfig::from_yaml(indoc! {"
@@ -341,8 +341,8 @@ fn test_unshare_all_by_default_integration() {
 
 #[test]
 fn test_share_specific_namespaces_integration() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::BwrapConfig;
 
     // Test 2: Share only user and network namespaces
     let config = BwrapConfig::from_yaml(indoc! {"
@@ -374,8 +374,8 @@ fn test_share_specific_namespaces_integration() {
 
 #[test]
 fn test_share_multiple_namespaces_integration() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::BwrapConfig;
 
     // Test 3: Share user, network, and ipc namespaces
     let config = BwrapConfig::from_yaml(indoc! {"
@@ -408,8 +408,8 @@ fn test_share_multiple_namespaces_integration() {
 
 #[test]
 fn test_share_all_namespaces_integration() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::BwrapConfig;
 
     // Test 4: Share all namespaces (no isolation)
     let config = BwrapConfig::from_yaml(indoc! {"
@@ -443,8 +443,8 @@ fn test_share_all_namespaces_integration() {
 
 #[test]
 fn test_template_with_share_inheritance() {
-    use bwrap_manager::bwrap::BwrapBuilder;
-    use bwrap_manager::config::BwrapConfig;
+    use shwrap::bwrap::BwrapBuilder;
+    use shwrap::config::BwrapConfig;
 
     // Test 5: Template inheritance with share
     let config = BwrapConfig::from_yaml(indoc! {"

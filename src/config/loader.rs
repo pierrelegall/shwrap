@@ -7,9 +7,9 @@ use super::BwrapConfig;
 pub struct ConfigLoader;
 
 impl ConfigLoader {
-    /// Search for .bwrap config file in hierarchical order
+    /// Search for .shwrap config file in hierarchical order
     pub fn find_config() -> Result<Option<PathBuf>> {
-        // 1. Look for .bwrap in current directory and parent directories
+        // 1. Look for .shwrap in current directory and parent directories
         if let Some(local_config) = Self::find_local_config()? {
             return Ok(Some(local_config));
         }
@@ -22,14 +22,14 @@ impl ConfigLoader {
         Ok(None)
     }
 
-    /// Find .bwrap file in current or parent directories
+    /// Find .shwrap file in current or parent directories
     pub fn find_local_config() -> Result<Option<PathBuf>> {
         let current_dir = env::current_dir().context("Failed to get current directory")?;
 
         let mut dir = current_dir.as_path();
 
         loop {
-            let config_path = dir.join(".bwrap");
+            let config_path = dir.join(".shwrap");
             if config_path.exists() {
                 return Ok(Some(config_path));
             }
@@ -44,12 +44,12 @@ impl ConfigLoader {
         Ok(None)
     }
 
-    /// Find user-level config at ~/.config/bwrap-manager/config
+    /// Find user-level config at ~/.config/shwrap/config
     pub fn find_user_config() -> Result<Option<PathBuf>> {
         if let Some(home) = env::var_os("HOME") {
             let config_path = Path::new(&home)
                 .join(".config")
-                .join("bwrap-manager")
+                .join("shwrap")
                 .join("config");
 
             if config_path.exists() {

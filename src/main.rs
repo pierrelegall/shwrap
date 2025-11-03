@@ -4,8 +4,8 @@ mod shell_hooks;
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 
-use bwrap_manager::bwrap::BwrapBuilder;
-use bwrap_manager::config::{self, loader::ConfigLoader};
+use shwrap::bwrap::BwrapBuilder;
+use shwrap::config::{self, loader::ConfigLoader};
 use cli::{Cli, Commands};
 use shell_hooks::Shell;
 
@@ -56,20 +56,20 @@ fn cmd_init(template: Option<String>) -> Result<()> {
         Some(other) => bail!("Unknown template: {}", other),
     };
 
-    let config_path = ".bwrap";
+    let config_path = ".shwrap";
     if std::path::Path::new(config_path).exists() {
-        bail!(".bwrap file already exists in current directory");
+        bail!(".shwrap file already exists in current directory");
     }
 
-    fs::write(config_path, template_content).context("Failed to write .bwrap file")?;
+    fs::write(config_path, template_content).context("Failed to write .shwrap file")?;
 
-    println!("Created .bwrap configuration file");
+    println!("Created .shwrap configuration file");
 
     Ok(())
 }
 
 fn cmd_exec(command: &str, args: &[String], dry_run: bool) -> Result<()> {
-    let config = ConfigLoader::load()?.context("No .bwrap configuration found")?;
+    let config = ConfigLoader::load()?.context("No .shwrap configuration found")?;
 
     let cmd_config = config
         .get_command_config(command)
@@ -96,7 +96,7 @@ fn cmd_check(path: Option<String>) -> Result<()> {
     let config_path = if let Some(p) = path {
         std::path::PathBuf::from(p)
     } else {
-        ConfigLoader::find_config()?.context("No .bwrap configuration found")?
+        ConfigLoader::find_config()?.context("No .shwrap configuration found")?
     };
 
     let config = config::BwrapConfig::from_file(&config_path)?;
@@ -118,7 +118,7 @@ fn cmd_check(path: Option<String>) -> Result<()> {
 }
 
 fn cmd_list() -> Result<()> {
-    let config = ConfigLoader::load()?.context("No .bwrap configuration found")?;
+    let config = ConfigLoader::load()?.context("No .shwrap configuration found")?;
 
     // Sort commands alphabetically
     let mut commands: Vec<_> = config.commands.iter().collect();
@@ -144,14 +144,14 @@ fn cmd_which() -> Result<()> {
     if let Some(config_path) = ConfigLoader::find_config()? {
         println!("{}", config_path.display());
     } else {
-        println!("No .bwrap configuration found");
+        println!("No .shwrap configuration found");
     }
 
     Ok(())
 }
 
 fn cmd_show(command: &str, args: &[String]) -> Result<()> {
-    let config = ConfigLoader::load()?.context("No .bwrap configuration found")?;
+    let config = ConfigLoader::load()?.context("No .shwrap configuration found")?;
 
     let cmd_config = config
         .get_command_config(command)

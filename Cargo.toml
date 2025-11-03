@@ -1,14 +1,14 @@
 [package]
-name = "bwrap-manager"
+name = "shwrap"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "bwrap_manager"
+name = "shwrap"
 path = "src/lib.rs"
 
 [[bin]]
-name = "bwrap-manager"
+name = "shwrap"
 path = "src/main.rs"
 
 [dependencies]
