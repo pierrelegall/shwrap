@@ -34,6 +34,9 @@ pub enum Commands {
     Check {
         /// Path to config file (defaults to searching hierarchy)
         path: Option<String>,
+        /// To enable no output (useful for shell exit code returns)
+        #[arg(long)]
+        silent: bool,
     },
 
     /// List active profiles and configurations

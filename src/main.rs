@@ -22,8 +22,8 @@ fn main() -> Result<()> {
         Commands::Exec { command, args } => {
             cmd_exec(&command, &args)?;
         }
-        Commands::Check { path } => {
-            cmd_check(path)?;
+        Commands::Check { path, silent } => {
+            cmd_check(path, silent)?;
         }
         Commands::List { simple } => {
             cmd_list(simple)?;
@@ -86,7 +86,7 @@ fn cmd_exec(command: &str, args: &[String]) -> Result<()> {
     std::process::exit(exit_code)
 }
 
-fn cmd_check(path: Option<String>) -> Result<()> {
+fn cmd_check(path: Option<String>, silent: bool) -> Result<()> {
     let config_path = if let Some(p) = path {
         std::path::PathBuf::from(p)
     } else {
@@ -94,6 +94,11 @@ fn cmd_check(path: Option<String>) -> Result<()> {
     };
 
     let config = config::BwrapConfig::from_file(&config_path)?;
+
+    if silent {
+        return Ok(());
+    }
+
     println!("Configuration is valid: {:?}", config_path);
     println!("Found {} command(s)", config.commands.len());
 
