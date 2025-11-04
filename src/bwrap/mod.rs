@@ -3,6 +3,8 @@ use std::process::Command;
 
 use crate::config::CommandConfig;
 
+const NAMESPACES: [&str; 6] = ["user", "pid", "network", "ipc", "uts", "cgroup"];
+
 pub struct BwrapBuilder {
     config: CommandConfig,
 }
@@ -16,15 +18,12 @@ impl BwrapBuilder {
     pub fn build_args(&self) -> Vec<String> {
         let mut args = Vec::new();
 
-        // Define all available namespaces
-        let all_namespaces = ["user", "pid", "network", "ipc", "uts", "cgroup"];
-
         // Determine which namespaces to unshare (all by default, except those in share)
         let shared_namespaces: std::collections::HashSet<&str> =
             self.config.share.iter().map(|s| s.as_str()).collect();
 
         // Unshare all namespaces except those explicitly shared
-        for namespace in &all_namespaces {
+        for namespace in &NAMESPACES {
             if !shared_namespaces.contains(namespace) {
                 match *namespace {
                     "network" => args.push("--unshare-net".to_string()),
