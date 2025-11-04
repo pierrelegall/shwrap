@@ -177,9 +177,7 @@ fn cmd_shell_hook(shell_name: &str) -> Result<()> {
         .get_hook()
         .with_context(|| format!("No hook found for shell {}", shell.to_str()))?;
 
-    let script = hook.generate()?;
-
-    print!("{}", script);
+    print!("{}", hook);
 
     Ok(())
 }

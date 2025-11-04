@@ -1,13 +1,7 @@
 // Copyright (C) 2025 Pierre Le Gall
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use anyhow::Result;
-
-pub mod bash;
-
-pub trait ShellHook {
-    fn generate(&self) -> Result<String>;
-}
+const BASH_HOOK: &str = include_str!("bash_hook.sh");
 
 pub enum Shell {
     Bash,
@@ -36,9 +30,9 @@ impl Shell {
         }
     }
 
-    pub fn get_hook(&self) -> Option<Box<dyn ShellHook>> {
+    pub fn get_hook(&self) -> Option<&str> {
         match self {
-            Shell::Bash => Some(Box::new(bash::BashHook)),
+            Shell::Bash => Some(BASH_HOOK),
             _ => None,
         }
     }
