@@ -1,12 +1,12 @@
 # Shwrap
 
-Shwrap, for "Shell Wrapper", is a manager to [Bubblewrap](https://github.com/containers/bubblewrap) your executables in your shell.
+Shwrap, for "Shell Wrapper", is a configuration manager to [Bubblewrap](https://github.com/containers/bubblewrap) your executables in your shell.
 
 ## About
 
-Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash`. Integrations for `zsh`, `fish` and `nushell` are comming.
+⚠ **Alpha software**: Shwrap is an alpha software, so breaking changes will happen.
 
-⚠ **Alpha software**: Shwrap is still in alpha, so breaking changes could happen.
+Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash`. Integrations for `zsh`, `fish` and `nushell` are comming.
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
@@ -14,16 +14,15 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 - 📁 **Hierarchical configuration**: Local `.shwrap` files override user config at `~/.config/shwrap/config`
 - 🔒 **Secure by default**: All namespaces unshared unless explicitly allowed
-- 🎯 **Per-command profiles**: Different sandbox settings for each command
-- 🔄 **Shell integration**: Automatic command wrapping via shell hooks
+- 🎯 **Per-command rules**: Different sandbox settings for each command
 - 📦 **Model system**: Reusable configuration models for common patterns
-- 🌐 **Flexible sharing**: Selectively share user, network, or other namespaces
+- 🔄 **Shell integration**: Automatic command wrapping via shell hooks
 
 ## Installation
 
 Build from source:
 
-```bash
+```sh
 git clone https://github.com/pierrelegall/shwrap.git
 cd shwrap
 cargo build --release
@@ -34,31 +33,30 @@ cargo build --release
 1. **Initialize a configuration file**:
 
 ```sh
-shwrap init
+shwrap config init
 # Or use a template:
-shwrap init --template nodejs
+shwrap config init --template nodejs
 ```
 
 2. **Edit `.shwrap` file** to define your commands:
 
 ```yaml
-commands:
-  node:
-    share:
-      - user
-      - network
-    bind:
-      - ~/.npm:~/.npm
-      - $PWD:/workspace
-    ro_bind:
-      - /usr
-      - /lib
+node:
+  share:
+    - user
+    - network
+  bind:
+    - ~/.npm:~/.npm
+    - $PWD:/workspace
+  ro_bind:
+    - /usr
+    - /lib
 ```
 
 3. **Run manually**:
 
 ```sh
-shwrap exec node app.js
+shwrap command exec node app.js
 ```
 
 4. **Or use shell hooks** (see below) for automatic wrapping.
@@ -69,21 +67,21 @@ shwrap exec node app.js
 
 Execute a sandboxed command manually:
 
-```bash
+```sh
 # Execute a command
-shwrap exec node app.js
+shwrap command exec node app.js
 
 # Show the bwrap command that would be executed
-shwrap show node app.js
+shwrap command show node app.js
 
 # List active command configurations
-shwrap list
+shwrap command list
 
 # Check configuration syntax
-shwrap check
+shwrap config check
 
 # Show which .shwrap file is being used
-shwrap which
+shwrap config which
 ```
 
 ### Shell hook
@@ -94,13 +92,13 @@ Shell hooks automatically wrap configured commands when you execute them.
 
 Add to your `~/.bashrc`:
 
-```bash
-eval "$(shwrap shell-hook bash)"
+```sh
+eval "$(shwrap shell-hook get bash)"
 ```
 
-```bash
+```sh
 node app.js
-# => run `shwarp exec node app.js` if `node` command configured
+# => run `shwarp command exec node app.js` if `node` command configured
 ```
 
 **Features**:
@@ -133,40 +131,39 @@ Shwrap searches for configuration in this order:
 ### Configuration syntax
 
 ```yaml
-# Optional: Define reusable models
-models:
-  base:
-    share:
-      - user
-    ro_bind:
-      - /usr
-      - /lib
+# Define reusable models
+base:
+  type: model               # Mark this as a model (not a command)
+  share:
+    - user
+  ro_bind:
+    - /usr
+    - /lib
 
 # Define command-specific configurations
-commands:
-  node:
-    enabled: true           # Optional: enable this command (default: true)
-    extends: base           # Optional: extend a template
-    share:                  # Share specific namespaces
-      - network
-    bind:                   # Read-write mounts
-      - ~/.npm:~/.npm
-      - $PWD:/workspace
-    ro_bind:                # Read-only mounts
-      - /etc/resolv.conf
-    dev_bind:               # Device bind mounts
-      - /dev/null
-    tmpfs:                  # Temporary filesystems
-      - /tmp
-    env:                    # Set environment variables
-      NODE_ENV: production
-    unset_env:              # Unset environment variables
-      - DEBUG
+node:
+  extends: base             # Optional: extend a model
+  enabled: true             # Optional: enable this command (default: true)
+  share:                    # Share specific namespaces
+    - network
+  bind:                     # Read-write mounts
+    - ~/.npm:~/.npm
+    - $PWD:/workspace
+  ro_bind:                  # Read-only mounts
+    - /etc/resolv.conf
+  dev_bind:                 # Device bind mounts
+    - /dev/null
+  tmpfs:                    # Temporary filesystems
+    - /tmp
+  env:                      # Set environment variables
+    NODE_ENV: production
+  unset_env:                # Unset environment variables
+    - DEBUG
 ```
 
 ### Namespace Isolation
 
-By default, **all namespaces are unshared** (isolated). Use `share:` to selectively allow:
+By default, **all namespaces are unshared** (isolated). Use `share` to selectively allow:
 
 - `user` - User/group IDs
 - `network` - Network access
@@ -177,7 +174,7 @@ By default, **all namespaces are unshared** (isolated). Use `share:` to selectiv
 
 ### Templates
 
-Available templates (use with `shwrap init --template <name>`):
+Available templates (use with `shwrap config init --template <name>`):
 
 - `default` - Minimal starter template
 - `nodejs` - Node.js development
@@ -191,58 +188,55 @@ Available templates (use with `shwrap init --template <name>`):
 ### Sandboxed Node.js
 
 ```yaml
-commands:
-  node:
-    share:
-      - user
-      - network
-    bind:
-      - ~/.npm:~/.npm
-      - $PWD:/workspace
-    ro_bind:
-      - /usr
-      - /lib
-      - /etc/resolv.conf
+node:
+  share:
+    - user
+    - network
+  bind:
+    - ~/.npm:~/.npm
+    - $PWD:/workspace
+  ro_binpd:
+    - /usr
+    - /lib
+    - /etc/resolv.conf
 ```
 
 ### Isolated Python (no network)
 
 ```yaml
-commands:
-  python:
-    enabled: true
-    share:
-      - user
-    bind:
-      - $PWD:/workspace
-    ro_bind:
-      - /usr
-      - /lib
+python:
+  enabled: true
+  share:
+    - user
+  bind:
+    - $PWD:/workspace
+  ro_bind:
+    - /usr
+    - /lib
 ```
 
-### Using Templates
+### Using Models
 
 ```yaml
-models:
-  dev_base:
-    share:
-      - user
-      - network
-    ro_bind:
-      - /usr
-      - /lib
-      - /etc
+dev_base:
+  type: model
+  share:
+    - user
+    - network
+  ro_bind:
+    - /usr
+    - /lib
+    - /etc
 
-commands:
-  node:
-    extends: dev_base
-    bind:
-      - ~/.npm:~/.npm
+node:
+  extends: dev_base
+  bind:
+    - ~/.npm:~/.npm
 
-  python:
-    extends: dev_base
-    bind:
-      - ~/.cache/pip:~/.cache/pip
+python:
+  extends: dev_base
+  bind:
+    - ~/.cache/pip:~/.cache/pip
 ```
 
 ## TODOs
@@ -254,7 +248,6 @@ commands:
 - [ ] Zsh hook
 - [ ] Fish hook
 - [ ] Nushell hook
-- [ ] Stabilize configuration file schema
 
 ## License
 
