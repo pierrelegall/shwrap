@@ -9,7 +9,7 @@ use tempfile::TempDir;
 #[test]
 fn test_full_config_loading_and_execution() {
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".shwrap");
+    let config_path = temp_dir.path().join(".shwrap.yaml");
 
     let yaml = indoc! {"
         base:
@@ -199,7 +199,7 @@ fn test_config_error_handling() {
     assert!(result.is_err());
 
     // Non-existent file should error
-    let result = Config::from_file("/nonexistent/path/.shwrap");
+    let result = Config::from_file("/nonexistent/path/.shwrap.yaml");
     assert!(result.is_err());
 }
 

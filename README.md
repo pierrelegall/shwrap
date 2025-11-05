@@ -12,7 +12,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## Features
 
-- 📁 **Hierarchical configuration**: Local `.shwrap` files override user config at `~/.config/shwrap/config`
+- 📁 **Hierarchical configuration**: Local `.shwrap.yaml` files override user config at `~/.config/shwrap/default.yaml`
 - 🔒 **Secure by default**: All namespaces unshared unless explicitly allowed
 - 🎯 **Per-command rules**: Different sandbox settings for each command
 - 📦 **Model system**: Reusable configuration models for common patterns
@@ -38,7 +38,7 @@ shwrap config init
 shwrap config init --template nodejs
 ```
 
-2. **Edit `.shwrap` file** to define your commands:
+2. **Edit `.shwrap.yaml` file** to define your commands:
 
 ```yaml
 node:
@@ -80,7 +80,7 @@ shwrap command list
 # Check configuration syntax
 shwrap config check
 
-# Show which .shwrap file is being used
+# Show which config file is being used
 shwrap config which
 ```
 
@@ -125,8 +125,8 @@ node app.js
 
 Shwrap searches for configuration in this order:
 
-1. **Local**: `.shwrap` in current directory or parent directories
-2. **User**: `~/.config/shwrap/config`
+1. **Local**: `.shwrap.yaml` in current directory or parent directories
+2. **User**: `~/.config/shwrap/default.yaml`
 
 ### Configuration syntax
 

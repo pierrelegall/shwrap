@@ -16,7 +16,7 @@ fn test_find_local_config_in_current_dir() {
     let _lock = DIR_MUTEX.lock().unwrap();
 
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".shwrap");
+    let config_path = temp_dir.path().join(".shwrap.yaml");
 
     fs::write(&config_path, "commands: {}").unwrap();
 
@@ -37,7 +37,7 @@ fn test_find_local_config_in_parent_dir() {
     let _lock = DIR_MUTEX.lock().unwrap();
 
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".shwrap");
+    let config_path = temp_dir.path().join(".shwrap.yaml");
     fs::write(&config_path, "commands: {}").unwrap();
 
     // Create subdirectory
@@ -84,7 +84,7 @@ fn test_load_with_valid_config() {
     let _lock = DIR_MUTEX.lock().unwrap();
 
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".shwrap");
+    let config_path = temp_dir.path().join(".shwrap.yaml");
 
     let yaml = indoc! {"
         node:
@@ -142,7 +142,7 @@ fn test_find_config_hierarchy_local_first() {
 
     // Local config should take precedence over user/system configs
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".shwrap");
+    let config_path = temp_dir.path().join(".shwrap.yaml");
     fs::write(&config_path, "commands: {}").unwrap();
 
     let original_dir = env::current_dir().unwrap();
@@ -160,7 +160,7 @@ fn test_find_config_walks_up_directories() {
     let _lock = DIR_MUTEX.lock().unwrap();
 
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join(".shwrap");
+    let config_path = temp_dir.path().join(".shwrap.yaml");
     fs::write(&config_path, "commands: {}").unwrap();
 
     // Create nested subdirectories

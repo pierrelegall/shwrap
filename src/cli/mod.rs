@@ -35,7 +35,7 @@ pub enum Subject {
 
 #[derive(Subcommand)]
 pub enum ConfigAction {
-    /// Initialize a new .shwrap file with templates
+    /// Initialize a new .shwrap.yaml file with templates
     Init {
         /// Template to use (nodejs, python, ruby, go, rust)
         #[arg(short, long)]
@@ -51,7 +51,7 @@ pub enum ConfigAction {
         silent: bool,
     },
 
-    /// Show which .shwrap file would be used
+    /// Show which .shwrap.yaml file would be used
     Which,
 }
 
