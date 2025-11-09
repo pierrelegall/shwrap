@@ -3,6 +3,7 @@
 
 const BASH_HOOK: &str = include_str!("bash_hook.sh");
 const ZSH_HOOK: &str = include_str!("zsh_hook.sh");
+const FISH_HOOK: &str = include_str!("fish_hook.fish");
 
 pub enum Shell {
     Bash,
@@ -35,6 +36,7 @@ impl Shell {
         match self {
             Shell::Bash => Some(BASH_HOOK),
             Shell::Zsh => Some(ZSH_HOOK),
+            Shell::Fish => Some(FISH_HOOK),
             _ => None,
         }
     }
