@@ -9,7 +9,6 @@ pub enum Shell {
     Bash,
     Zsh,
     Fish,
-    Nushell,
 }
 
 impl Shell {
@@ -18,7 +17,6 @@ impl Shell {
             Shell::Bash => "bash",
             Shell::Zsh => "zsh",
             Shell::Fish => "fish",
-            Shell::Nushell => "nushell",
         }
     }
 
@@ -27,7 +25,6 @@ impl Shell {
             "bash" => Some(Shell::Bash),
             "zsh" => Some(Shell::Zsh),
             "fish" => Some(Shell::Fish),
-            "nushell" => Some(Shell::Nushell),
             _ => None,
         }
     }
@@ -37,7 +34,6 @@ impl Shell {
             Shell::Bash => Some(BASH_HOOK),
             Shell::Zsh => Some(ZSH_HOOK),
             Shell::Fish => Some(FISH_HOOK),
-            _ => None,
         }
     }
 }

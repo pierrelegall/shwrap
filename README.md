@@ -6,7 +6,7 @@ Shwrap, for "Shell Wrapper", is a configuration manager to [Bubblewrap](https://
 
 ⚠ **Alpha software**: Shwrap is an alpha software, so breaking changes will happen.
 
-Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash`, `zsh`, and `fish`. Integration for `nushell` is coming.
+Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash`, `zsh`, and `fish`.
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
@@ -116,10 +116,6 @@ Add to your `~/.config/fish/config.fish`:
 ```sh
 shwrap shell-hook get fish | source
 ```
-
-#### Nushell
-
-🚧 TODO
 
 ## Configuration
 
@@ -249,7 +245,6 @@ python:
 - [X] Bash hook
 - [X] Zsh hook
 - [X] Fish hook
-- [ ] Nushell hook
 
 ## License
 
