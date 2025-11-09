@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 const BASH_HOOK: &str = include_str!("bash_hook.sh");
+const ZSH_HOOK: &str = include_str!("zsh_hook.sh");
 
 pub enum Shell {
     Bash,
@@ -33,6 +34,7 @@ impl Shell {
     pub fn get_hook(&self) -> Option<&str> {
         match self {
             Shell::Bash => Some(BASH_HOOK),
+            Shell::Zsh => Some(ZSH_HOOK),
             _ => None,
         }
     }

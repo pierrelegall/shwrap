@@ -1,13 +1,12 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 # Copyright (C) 2025 Pierre Le Gall
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Bash hook for Shwrap auto wrapped commands.
-# Note: It use functions as aliases,
+# Zsh hook for Shwrap auto wrapped commands.
+# Note: It uses functions as aliases,
 # so user defined functions can be redefined.
 
-typeset -g SHWRAP_PREVIOUS_DIR="$PWD"
 typeset -g SHWRAP_COMMANDS=""
 typeset -g SHWRAP_DEBUG=${SHWRAP_DEBUG:-0}
 
@@ -26,7 +25,7 @@ __shwrap_wrap_command() {
 __shwrap_set_commands() {
   while IFS= read -r cmd; do
     if [[ -n "$cmd" ]]; then
-      __shwrap_log "Set commands: $cmd"
+      __shwrap_log "Set command: $cmd"
       eval "
         $cmd() {
           __shwrap_wrap_command $cmd \"\$@\"
@@ -53,29 +52,15 @@ __shwrap_unset_commands() {
 
 # Directory change hook
 __shwrap_directory_change_hook() {
-  __shwrap_log "Directory change hook called"
+  __shwrap_log "Directory changed to: $PWD"
   __shwrap_unset_commands
   __shwrap_refresh_commands
   __shwrap_set_commands
 }
 
-# Prompt hook
-__shwrap_prompt_hook() {
-  __shwrap_log "Prompt hook called"
-  if [[ "$SHWRAP_PREVIOUS_DIR" != "$PWD" ]]; then
-    __shwrap_log "Directory changed detected: $PWD"
-    __shwrap_on_directory_change
-    SHWRAP_PREVIOUS_DIR="$PWD"
-  fi
-}
-
-# Install the hook (preserves existing PROMPT_COMMAND)
-if [[ -z "$PROMPT_COMMAND" ]]; then
-  PROMPT_COMMAND="__shwrap_prompt_hook"
-else
-  if [[ "$PROMPT_COMMAND" != *"__shwrap_prompt_hook"* ]]; then
-    PROMPT_COMMAND="__shwrap_prompt_hook;$PROMPT_COMMAND"
-  fi
+# Add our hook to Zsh's chpwd_functions array
+if (( ! ${chpwd_functions[(I)__shwrap_directory_change_hook]} )); then
+  chpwd_functions+=(__shwrap_directory_change_hook)
 fi
 
 # Initial setup

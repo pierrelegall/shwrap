@@ -6,7 +6,7 @@ Shwrap, for "Shell Wrapper", is a configuration manager to [Bubblewrap](https://
 
 ⚠ **Alpha software**: Shwrap is an alpha software, so breaking changes will happen.
 
-Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash`. Integrations for `zsh`, `fish` and `nushell` are comming.
+Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash` and `zsh`. Integrations for `fish` and `nushell` are coming.
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
@@ -88,6 +88,11 @@ shwrap config which
 
 Shell hooks automatically wrap configured commands when you execute them.
 
+**Features**:
+
+- Reloads command configurations when changing directories
+- Supports debug mode: `export SHWRAP_DEBUG=1`
+
 #### Bash
 
 Add to your `~/.bashrc`:
@@ -96,20 +101,13 @@ Add to your `~/.bashrc`:
 eval "$(shwrap shell-hook get bash)"
 ```
 
-```sh
-node app.js
-# => run `shwarp command exec node app.js` if `node` command configured
-```
-
-**Features**:
-
-- Automatically detects directory changes
-- Reloads command configurations when changing directories
-- Supports debug mode: `export SHWRAP_DEBUG=1`
-
 #### Zsh
 
-🚧 TODO
+Add to your `~/.zshrc`:
+
+```sh
+eval "$(shwrap shell-hook get zsh)"
+```
 
 #### Fish
 
@@ -195,7 +193,7 @@ node:
   bind:
     - ~/.npm:~/.npm
     - $PWD:/workspace
-  ro_binpd:
+  ro_bind:
     - /usr
     - /lib
     - /etc/resolv.conf
@@ -245,7 +243,7 @@ python:
 - [X] Use user configuration file if no local configuration
 - [ ] Local configuration extends user configuration
 - [X] Bash hook
-- [ ] Zsh hook
+- [X] Zsh hook
 - [ ] Fish hook
 - [ ] Nushell hook
 
