@@ -1,12 +1,18 @@
-# Shwrap
+<h3 align="center">
+  shwrap
+</h3>
 
-Shwrap, for "Shell Wrapper", is a configuration manager to [Bubblewrap](https://github.com/containers/bubblewrap) your executables in your shell.
+<div align="center">
+  <a href="https://github.com/pierrelegall/shwrap/stargazers"><img src="https://img.shields.io/github/stars/pierrelegall/shwrap?colorA=363a4f&colorB=b7bdf8&style=for-the-badge"></a>
+  <a href="https://github.com/pierrelegall/shwrap/issues"><img src="https://img.shields.io/github/issues/pierrelegall/shwrap?colorA=363a4f&colorB=f5a97f&style=for-the-badge"></a>
+  <a href="https://github.com/pierrelegall/shwrap/contributors"><img src="https://img.shields.io/github/contributors/pierrelegall/shwrap?colorA=363a4f&colorB=a6da95&style=for-the-badge"></a>
+</div>
 
 ## About
 
-⚠ **Alpha software**: Shwrap is an alpha software, so breaking changes will happen.
-
 Shwrap allows you to define sandbox profiles (in your directory or globally for your user) for different commands and automatically wraps them using [Bubblewrap](https://github.com/containers/bubblewrap) when executed. Hooks are available for `bash`, `zsh`, and `fish`.
+
+⚠ **Alpha software**: Shwrap is an alpha software, so breaking changes will happen.
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
@@ -246,10 +252,6 @@ python:
 - [X] Zsh hook
 - [X] Fish hook
 
-## License
-
-This software is licensed under GNU Public License version 3 or later.
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
@@ -259,3 +261,11 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - [Bubblewrap](https://github.com/containers/bubblewrap) - The underlying sandboxing tool
 - [Bubblejail](https://github.com/igo95862/bubblejail) - Alternative sandboxing solution
 - [Firejail](https://github.com/netblue30/firejail) - Alternative sandboxing solution
+
+<p align="center">
+  Copyright &copy; 2025 <a href="https://github.com/pierrelegall" target="_blank">Pierre Le Gall</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/pierrelegall/shwrap/blob/main/LICENSE.md"><img src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=GPL%20v3&logoColor=d9e0ee&colorA=363a4f&colorB=b7bdf8"/></a>
+</p>
