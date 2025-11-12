@@ -64,7 +64,7 @@ __shwrap_prompt_hook() {
   __shwrap_log "Prompt hook called"
   if [[ "$SHWRAP_PREVIOUS_DIR" != "$PWD" ]]; then
     __shwrap_log "Directory changed detected: $PWD"
-    __shwrap_on_directory_change
+    __shwrap_directory_change_hook
     SHWRAP_PREVIOUS_DIR="$PWD"
   fi
 }
